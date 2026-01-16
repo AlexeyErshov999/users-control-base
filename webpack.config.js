@@ -1,23 +1,28 @@
-const path = require('path');
-const ESLintPlugin = require('eslint-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const Dotenv = require('dotenv-webpack');
+import path from 'path';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import ESLintPlugin from 'eslint-webpack-plugin';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import Dotenv from 'dotenv-webpack';
 
-module.exports = {
-  entry: path.resolve(__dirname, './src/index.tsx'),
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+export default {
+  mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
+  entry: resolve(__dirname, './src/index.tsx'), // Точка входа по FSD
+  output: {
+    path: resolve(__dirname, './dist'),
+    filename: 'bundle.[contenthash].js', // Добавил хеш для кэширования
+    clean: true
+  },
   module: {
     rules: [
       {
-        test: /\.(js|jsx)$/,
+        // Обрабатываем js, jsx, ts, tsx через babel-loader
+        test: /\.(js|jsx|ts|tsx)$/,
         exclude: /node_modules/,
         use: ['babel-loader']
-      },
-      {
-        test: /\.(ts)x?$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'ts-loader'
-        }
       },
       {
         test: /\.css$/,
@@ -32,65 +37,44 @@ module.exports = {
           {
             loader: 'css-loader',
             options: {
-              modules: true
+              modules: {
+                localIdentName: '[name]__[local]--[hash:base64:5]'
+              }
             }
           }
         ]
       },
       {
-        test: /\.(jpg|jpeg|png|svg)$/,
-        type: 'asset/resource'
-      },
-      {
-        test: /\.(woff|woff2)$/,
-        type: 'asset/resource'
+        test: /\.(jpg|jpeg|png|svg|woff|woff2)$/,
+        type: 'asset/resource' // Webpack 5 встроенные ассеты
       }
     ]
   },
   plugins: [
-    new ESLintPlugin({
-      extensions: ['.js', '.jsx', '.ts', '.tsx']
-    }),
     new HtmlWebpackPlugin({
       template: './public/index.html'
     }),
-    new Dotenv()
+    new Dotenv(),
+    // new ESLintPlugin({
+    //   extensions: ['.js', '.jsx', '.ts', '.tsx'],
+    //   eslintPath: 'eslint/use-at-your-own-risk',
+    //   emitWarning: false,
+    //   failOnWarning: false,
+    //   quiet: true
+    // })
   ],
   resolve: {
-    extensions: [
-      '*',
-      '.js',
-      '.jsx',
-      '.ts',
-      '.tsx',
-      '.json',
-      '.css',
-      '.scss',
-      '.png',
-      '.svg',
-      '.jpg'
-    ],
+    // В 2026 году лучше не использовать '*' в расширениях
+    extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
     alias: {
-      '@pages': path.resolve(__dirname, './src/pages'),
-      '@components': path.resolve(__dirname, './src/components'),
-      '@ui': path.resolve(__dirname, './src/components/ui'),
-      '@ui-pages': path.resolve(__dirname, './src/components/ui/pages'),
-      '@utils-types': path.resolve(__dirname, './src/utils/types'),
-      '@api': path.resolve(__dirname, './src/utils/burger-api.ts'),
-      '@slices': path.resolve(__dirname, './src/services/slices'),
-      '@hooks': path.resolve(__dirname, './src/hooks'),
-      '@store': path.resolve(__dirname, './src/services/store.ts'),
-      '@selectors': path.resolve(__dirname, './src/services/selectors')
+      '@': path.resolve(__dirname, 'src')
     }
   },
-  output: {
-    path: path.resolve(__dirname, './dist'),
-    filename: 'bundle.js'
-  },
   devServer: {
-    static: path.join(__dirname, './dist'),
+    static: resolve(__dirname, './dist'),
     compress: true,
     historyApiFallback: true,
-    port: 4000
+    port: 4000,
+    hot: true
   }
 };
